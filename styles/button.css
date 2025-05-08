@@ -1,0 +1,21 @@
+/* Styles for the floating 'Add to Study Mode' button */
+#studyModeAddBtn {
+  position: fixed;
+  bottom: 32px;
+  right: 32px;
+  z-index: 10000;
+  background: #1a73e8;
+  color: #fff;
+  border: none;
+  border-radius: 24px;
+  padding: 14px 24px;
+  font-size: 16px;
+  font-weight: bold;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+#studyModeAddBtn:hover {
+  background: #1761c7;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.18);
+} 
