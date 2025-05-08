@@ -151,6 +151,21 @@ function blockNonStudyContent() {
     videoPlayer.style.pointerEvents = 'none';
   }
 
+  // Pause the video and prevent playback
+  const video = document.querySelector('video');
+  if (video) {
+    video.pause();
+    // Remove any previous event listener to avoid stacking
+    if (video._studyModePauseListener) {
+      video.removeEventListener('play', video._studyModePauseListener);
+    }
+    // Add a new event listener to keep the video paused
+    video._studyModePauseListener = function() {
+      video.pause();
+    };
+    video.addEventListener('play', video._studyModePauseListener);
+  }
+
   // Add warning overlay
   const warning = document.createElement('div');
   warning.style.cssText = `
