@@ -20,6 +20,3 @@ A Chrome extension to help you focus on educational content by blocking distract
 
 ## Privacy
 See [PRIVACY.md](./PRIVACY.md) for details. No data leaves your device.
-
-## License
-MIT 
