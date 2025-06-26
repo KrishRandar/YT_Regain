@@ -48,6 +48,12 @@ async function addChannelToStudy(channelId, callback) {
         callback();
       }
     });
+
+    // Just click the play button immediately
+    const playButton = document.querySelector('.ytp-play-button');
+    if (playButton) {
+      playButton.click();
+    }
   } catch (error) {
     console.error('Error adding channel to study:', error);
     // Add with default values if details fetch fails
@@ -129,19 +135,10 @@ async function getChannelDetails(channelId) {
     const doc = parser.parseFromString(html, 'text/html');
 
     // Extract channel name
-    const name = 
-      doc.querySelector('meta[property="og:title"]')?.content?.replace(' - YouTube', '') ||
-      doc.querySelector('link[itemprop="name"]')?.content ||
-      doc.querySelector('#channel-name')?.textContent?.trim() ||
-      doc.querySelector('#owner-name')?.textContent?.trim() ||
-      doc.querySelector('title')?.textContent?.replace(' - YouTube', '');
+    const name = doc.querySelector('meta[property="og:title"]')?.content?.replace(' - YouTube', '');
 
     // Extract channel thumbnail
-    const thumbnail = 
-      doc.querySelector('meta[property="og:image"]')?.content ||
-      doc.querySelector('link[itemprop="thumbnailUrl"]')?.href ||
-      doc.querySelector('#channel-header-container img')?.src ||
-      doc.querySelector('#owner-thumbnail img')?.src;
+    const thumbnail = doc.querySelector('meta[property="og:image"]')?.content;
 
     if (!name || !thumbnail) {
       throw new Error('Could not extract channel details');

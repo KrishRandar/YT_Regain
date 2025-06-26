@@ -7,12 +7,32 @@ const BUTTON_ID = 'studyModeAddBtn';
 let debounceTimer = null;
 let studyModeEnabled = false;
 let currentChannelId = null;
+let studyModeFilterTimer = null;
+let lastFilterState = null; // Track last applied state
 
 // Initialize study mode state
 chrome.storage.local.get(['studyModeEnabled'], (result) => {
   studyModeEnabled = result.studyModeEnabled || false;
   if (studyModeEnabled) {
-    applyStudyModeFiltering();
+    // Reset filter state to force re-evaluation
+    lastFilterState = null;
+    
+    // Check current channel and only pause if not in study list
+    const currentChannelId = window.channelUtils.extractChannelId();
+    if (currentChannelId) {
+      window.channelUtils.isChannelInStudy(currentChannelId, (isStudyChannel) => {
+        if (!isStudyChannel) {
+          // Only pause if channel is not in study list
+          const video = document.querySelector('video');
+          if (video && !video.paused) {
+            video.pause();
+          }
+        }
+        applyStudyModeFiltering();
+      });
+    } else {
+      applyStudyModeFiltering();
+    }
   }
 });
 
@@ -32,11 +52,7 @@ function createAddButton() {
     btn.onclick = () => {
       window.channelUtils.addChannelToStudy(channelId, () => {
         btn.textContent = 'Added!';
-        setTimeout(() => { 
-          btn.remove(); // Remove button after adding
-          // Refresh the page to apply changes
-          window.location.reload();
-        }, 1000);
+        setTimeout(() => btn.remove(), 1000);
       });
     };
     document.body.appendChild(btn);
@@ -52,7 +68,8 @@ function shouldShowButton() {
   // Show on video or channel pages only
   const isVideo = /^\/watch/.test(window.location.pathname);
   const isChannel = /^\/channel\//.test(window.location.pathname);
-  return isVideo || isChannel;
+  const isUsername = /^\/@/.test(window.location.pathname);
+  return isVideo || isChannel || isUsername;
 }
 
 function handlePageChange() {
@@ -84,41 +101,51 @@ function isAdPlaying() {
 }
 
 function applyStudyModeFiltering() {
-  if (!studyModeEnabled) {
-    removeAllFiltering();
-    return;
+  // Clear existing timer
+  if (studyModeFilterTimer) {
+    clearTimeout(studyModeFilterTimer);
   }
-
-  // Remove any existing warning overlay
-  const existingWarning = document.querySelector('div[style*="position: fixed"]');
-  if (existingWarning) existingWarning.remove();
-
-  // If an ad is playing, don't apply filtering
-  if (isAdPlaying()) {
-    removeAllFiltering();
-    return;
-  }
-
-  // Get current channel ID
-  const newChannelId = window.channelUtils.extractChannelId();
-  if (!newChannelId) return;
-
-  // Only reapply filtering if channel changed
-  if (newChannelId !== currentChannelId) {
-    currentChannelId = newChannelId;
-    
-    // Check if current channel is in study list
-    window.channelUtils.isChannelInStudy(currentChannelId, (isStudyChannel) => {
-      if (!isStudyChannel) {
-        blockNonStudyContent();
-      } else {
+  
+  studyModeFilterTimer = setTimeout(() => {
+    if (!studyModeEnabled) {
+      if (lastFilterState !== 'disabled') {
         removeAllFiltering();
+        lastFilterState = 'disabled';
       }
-    });
-  }
+      return;
+    }
 
-  // Always block distracting elements
-  blockDistractingElements();
+    // If an ad is playing, don't apply filtering
+    if (isAdPlaying()) {
+      if (lastFilterState !== 'ad') {
+        removeAllFiltering();
+        lastFilterState = 'ad';
+      }
+      return;
+    }
+
+    // Get current channel ID
+    const newChannelId = window.channelUtils.extractChannelId();
+    if (!newChannelId) return;
+
+    // Check study list status
+    window.channelUtils.isChannelInStudy(newChannelId, (isStudyChannel) => {
+      const newState = isStudyChannel ? 'allowed' : 'blocked';
+      
+      // Only apply if state actually changed
+      if (lastFilterState !== newState) {
+        if (!isStudyChannel) {
+          blockNonStudyContent();
+        } else {
+          removeAllFiltering();
+        }
+        lastFilterState = newState;
+      }
+      
+      // Always block distracting elements (but don't change state)
+      blockDistractingElements();
+    });
+  }, 200); // 200ms debounce
 }
 
 function removeAllFiltering() {
@@ -127,6 +154,19 @@ function removeAllFiltering() {
   if (videoPlayer) {
     videoPlayer.style.filter = '';
     videoPlayer.style.pointerEvents = '';
+  }
+
+  // Remove video pause listener
+  const video = document.querySelector('video');
+  if (video && video._studyModePauseListener) {
+    video.removeEventListener('play', video._studyModePauseListener);
+    video._studyModePauseListener = null;
+  }
+
+  // Just click the play button immediately
+  const playButton = document.querySelector('.ytp-play-button');
+  if (playButton) {
+    playButton.click();
   }
 
   // Remove warning overlay
@@ -255,9 +295,44 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'STUDY_MODE_TOGGLED') {
     studyModeEnabled = message.enabled;
     if (studyModeEnabled) {
-      applyStudyModeFiltering();
+      // Reset filter state to force re-evaluation
+      lastFilterState = null;
+      
+      // Check current channel and only pause if not in study list
+      const currentChannelId = window.channelUtils.extractChannelId();
+      if (currentChannelId) {
+        window.channelUtils.isChannelInStudy(currentChannelId, (isStudyChannel) => {
+          if (!isStudyChannel) {
+            // Only pause if channel is not in study list
+            const video = document.querySelector('video');
+            if (video && !video.paused) {
+              video.pause();
+            }
+          }
+          applyStudyModeFiltering();
+        });
+      } else {
+        applyStudyModeFiltering();
+      }
     } else {
       removeAllFiltering();
+    }
+  }
+});
+
+// Listen for study channel list changes
+chrome.storage.onChanged.addListener((changes, namespace) => {
+  if (namespace === 'local' && changes.studyChannels) {
+    // Study channels list changed, re-apply filtering
+    if (studyModeEnabled) {
+      lastFilterState = null; // Force re-evaluation
+      applyStudyModeFiltering();
+    }
+    
+    // Recreate add button if needed
+    if (shouldShowButton()) {
+      removeAddButton(); // Remove existing button
+      createAddButton(); // Create new button
     }
   }
 });

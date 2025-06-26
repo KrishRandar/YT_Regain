@@ -1,6 +1,8 @@
 // Logic for YouTube Study Mode popup UI
 
 document.addEventListener('DOMContentLoaded', () => {
+  console.log('Popup loaded, channelUtils available:', !!window.channelUtils);
+  
   const toggleStudyMode = document.getElementById('toggleStudyMode');
   const channelList = document.getElementById('channelList');
   const clearChannels = document.getElementById('clearChannels');
@@ -29,12 +31,22 @@ document.addEventListener('DOMContentLoaded', () => {
         // Convert legacy format to new format
         const updatedChannels = await Promise.all(channels.map(async (channelId) => {
           try {
-            const details = await window.channelUtils.getChannelDetails(channelId);
-            return {
-              id: channelId,
-              name: details.name,
-              thumbnail: details.thumbnail
-            };
+            // Check if channelUtils is available
+            if (window.channelUtils && window.channelUtils.getChannelDetails) {
+              const details = await window.channelUtils.getChannelDetails(channelId);
+              return {
+                id: channelId,
+                name: details.name,
+                thumbnail: details.thumbnail
+              };
+            } else {
+              // Fallback if channelUtils is not available
+              return {
+                id: channelId,
+                name: `Channel ${channelId}`,
+                thumbnail: `https://www.gstatic.com/youtube/img/channels/channel_${channelId}_default.png`
+              };
+            }
           } catch (error) {
             console.error('Error converting legacy channel:', error);
             return {
