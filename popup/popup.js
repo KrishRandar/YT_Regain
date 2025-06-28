@@ -7,6 +7,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const channelList = document.getElementById('channelList');
   const clearChannels = document.getElementById('clearChannels');
   const exportChannels = document.getElementById('exportChannels');
+  const importChannels = document.getElementById('importChannels');
+  const importFileInput = document.getElementById('importFileInput');
 
   // Load and display study mode state
   chrome.storage.local.get(['studyModeEnabled'], (result) => {
@@ -145,6 +147,11 @@ document.addEventListener('DOMContentLoaded', () => {
       a.click();
       URL.revokeObjectURL(url);
     });
+  });
+
+  // Import channels
+  importChannels.addEventListener('click', () => {
+    chrome.tabs.create({ url: chrome.runtime.getURL('import/import.html') });
   });
 
   // Initial load

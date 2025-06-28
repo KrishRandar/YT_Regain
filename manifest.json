@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "YouTube Study Mode",
   "description": "Helps users focus on educational content by filtering distractions on YouTube.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "icons": {
     "16": "assets/YT_Regain_ICON.png",
     "48": "assets/YT_Regain_ICON.png",
@@ -30,8 +30,13 @@
   "host_permissions": [
     "https://www.youtube.com/*"
   ],
-  "web_accessible_resources": [{
-    "resources": ["utils/channelUtils.js"],
-    "matches": ["https://www.youtube.com/*"]
-  }]
+  "options_page": "import/import.html",
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "utils/channelUtils.js"
+      ],
+      "matches": ["https://www.youtube.com/*"]
+    }
+  ]
 } 

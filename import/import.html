@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Import Study Channels</title>
+  <link rel="stylesheet" href="import.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Import Study Channels</h1>
+    <div class="info">Select a previously exported JSON file to merge channels into your list.</div>
+    <input type="file" id="importFile" accept="application/json">
+    <br>
+    <button id="importBtn" disabled>Import</button>
+    <div id="msg"></div>
+    <div style="margin-top:2em;">
+      <a href="../popup/popup.html" style="color:#007bff;">Back to Popup</a>
+    </div>
+  </div>
+  <script src="import.js"></script>
+</body>
+</html> 
